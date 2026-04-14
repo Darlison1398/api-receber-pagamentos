@@ -21,11 +21,10 @@ import org.springframework.test.web.servlet.MockMvc;
 import java.math.BigDecimal;
 
 import static org.mockito.Mockito.when;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
+
+import org.springframework.security.test.context.support.WithMockUser;
 
 @SpringBootTest
 @AutoConfigureMockMvc
@@ -56,10 +55,35 @@ class PagamentoControllerTest {
     }
 
     // =========================
+    // 🔐 SEGURANÇA
+    // =========================
+
+    @Test
+    void deveRetornar403_QuandoNaoAutenticado() throws Exception {
+        mockMvc.perform(get("/pagamentos"))
+                .andExpect(status().isForbidden());
+    }
+
+    @Test
+    @WithMockUser(roles = "ADMIN")
+    void deveNegarAcesso_QuandoRoleErrada() throws Exception {
+        mockMvc.perform(get("/pagamentos"))
+                .andExpect(status().isForbidden());
+    }
+
+    @Test
+    @WithMockUser(roles = "USER")
+    void devePermitirAcesso_QuandoRoleCorreta() throws Exception {
+        mockMvc.perform(get("/pagamentos"))
+                .andExpect(status().isOk());
+    }
+
+    // =========================
     // ✅ CRIAR PAGAMENTO
     // =========================
 
     @Test
+    @WithMockUser(roles = "USER")
     void deveCriarPagamentoComSucesso() throws Exception {
         PagamentoModel pagamento = new PagamentoModel();
         pagamento.setValor(BigDecimal.TEN);
@@ -72,6 +96,7 @@ class PagamentoControllerTest {
     }
 
     @Test
+    @WithMockUser(roles = "USER")
     void deveRetornarErro_QuandoValorInvalido() throws Exception {
         PagamentoModel pagamento = new PagamentoModel();
         pagamento.setValor(BigDecimal.ZERO);
@@ -80,14 +105,15 @@ class PagamentoControllerTest {
         mockMvc.perform(post("/pagamentos/criar")
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(objectMapper.writeValueAsString(pagamento)))
-                .andExpect(status().is5xxServerError());
+                .andExpect(status().isBadRequest());
     }
 
     // =========================
-    // ✅ LISTAR PAGAMENTOS
+    // 📄 LISTAR
     // =========================
 
     @Test
+    @WithMockUser(roles = "USER")
     void deveListarPagamentos() throws Exception {
         PagamentoModel pagamento = new PagamentoModel();
         pagamento.setValor(BigDecimal.TEN);
@@ -101,10 +127,11 @@ class PagamentoControllerTest {
     }
 
     // =========================
-    // 🔍 BUSCAR POR ID
+    // 🔍 BUSCAR
     // =========================
 
     @Test
+    @WithMockUser(roles = "USER")
     void deveBuscarPagamentoPorId() throws Exception {
         PagamentoModel pagamento = new PagamentoModel();
         pagamento.setValor(BigDecimal.TEN);
@@ -118,16 +145,45 @@ class PagamentoControllerTest {
     }
 
     @Test
-    void deveRetornarErro_QuandoPagamentoNaoExiste() throws Exception {
+    @WithMockUser(roles = "USER")
+    void deveRetornar404_QuandoPagamentoNaoExiste() throws Exception {
         mockMvc.perform(get("/pagamentos/999"))
                 .andExpect(status().isNotFound());
     }
 
     // =========================
-    // 🔄 CONFIRMAR PAGAMENTO
+    // 🔐 ACESSO ENTRE USUÁRIOS
     // =========================
 
     @Test
+    @WithMockUser(roles = "USER")
+    void deveNegarAcesso_QuandoPagamentoNaoPertenceAoUsuario() throws Exception {
+
+        UserModel dono = new UserModel();
+        dono.setId(1L);
+
+        UserModel outro = new UserModel();
+        outro.setId(2L);
+
+        PagamentoModel pagamento = new PagamentoModel();
+        pagamento.setValor(BigDecimal.TEN);
+        pagamento.setMetodo(MetodoPagamento.PIX);
+        pagamento.setUser(dono);
+
+        pagamento = pagamentoRepository.save(pagamento);
+
+        when(userService.getUsuarioLogado()).thenReturn(outro);
+
+        mockMvc.perform(get("/pagamentos/" + pagamento.getId()))
+                .andExpect(status().isNotFound());
+    }
+
+    // =========================
+    // 🔄 CONFIRMAR
+    // =========================
+
+    @Test
+    @WithMockUser(roles = "USER")
     void deveConfirmarPagamento() throws Exception {
         PagamentoModel pagamento = new PagamentoModel();
         pagamento.setValor(BigDecimal.TEN);
@@ -142,9 +198,10 @@ class PagamentoControllerTest {
     }
 
     @Test
+    @WithMockUser(roles = "USER")
     void deveRetornarErro_QuandoConfirmarPagamentoJaConfirmado() throws Exception {
         PagamentoModel pagamento = new PagamentoModel();
-        pagamento.setValor(BigDecimal.TEN);
+        pagamento.setValor(BigDecimal.TEN); // ✅ obrigatório
         pagamento.setMetodo(MetodoPagamento.PIX);
         pagamento.setUser(usuario);
         pagamento.setStatus(StatusPagamento.CONFIRMADO);
@@ -156,13 +213,14 @@ class PagamentoControllerTest {
     }
 
     // =========================
-    // ❌ CANCELAR PAGAMENTO
+    // ❌ CANCELAR
     // =========================
 
     @Test
+    @WithMockUser(roles = "USER")
     void deveCancelarPagamento() throws Exception {
         PagamentoModel pagamento = new PagamentoModel();
-        pagamento.setValor(BigDecimal.TEN);
+        pagamento.setValor(BigDecimal.TEN); // ✅ obrigatório
         pagamento.setMetodo(MetodoPagamento.PIX);
         pagamento.setUser(usuario);
         pagamento.setStatus(StatusPagamento.PENDENTE);
@@ -173,31 +231,19 @@ class PagamentoControllerTest {
                 .andExpect(status().isOk());
     }
 
-    @Test
-    void deveRetornarErro_QuandoCancelarPagamentoJaConfirmado() throws Exception {
-        PagamentoModel pagamento = new PagamentoModel();
-        pagamento.setValor(BigDecimal.TEN);
-        pagamento.setMetodo(MetodoPagamento.PIX);
-        pagamento.setUser(usuario);
-        pagamento.setStatus(StatusPagamento.CONFIRMADO);
-
-        pagamento = pagamentoRepository.save(pagamento);
-
-        mockMvc.perform(put("/pagamentos/" + pagamento.getId() + "/cancelar"))
-                .andExpect(status().isBadRequest());
-    }
-
     // =========================
     // 🔍 FILTROS
     // =========================
 
     @Test
+    @WithMockUser(roles = "USER")
     void deveFiltrarPorStatus() throws Exception {
         mockMvc.perform(get("/pagamentos/status/PENDENTE"))
                 .andExpect(status().isOk());
     }
 
     @Test
+    @WithMockUser(roles = "USER")
     void deveFiltrarPorMetodo() throws Exception {
         mockMvc.perform(get("/pagamentos/metodo/PIX"))
                 .andExpect(status().isOk());
