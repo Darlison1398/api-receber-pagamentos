@@ -1,42 +1,71 @@
-# API de Gerenciamento de Usuários
+# 💳 Payment API - Spring Boot
 
-Esta é uma API desenvolvida com **Spring Boot**, **Spring Security** e **Auth0**, utilizando o banco de dados **PostgreSQL**. Ela gerencia autenticação, permissões de usuários e recuperação de senha, com funcionalidades específicas para dois tipos de usuários: **usuário comum (user)** e **administrador (admin)**.
-
----
-
-## Funcionalidades
-
-- **Autenticação e Autorização**
-  - Gerenciamento de usuários com **JWT (JSON Web Token)** para autenticação.
-  - Validação de permissões de acesso com base no tipo de usuário (user ou admin).
-
-- **Permissões**
-  - **Usuário Comum (user):** Permissões limitadas e específicas para ações básicas.
-  - **Administrador (admin):** Acesso a recursos avançados, incluindo gerenciamento de usuários.
-
-- **Recuperação de Senha**
-  - Solicitação de redefinição de senha.
-  - Envio de um email com um link contendo um **token com validade de 1 hora** para redefinição segura.
+API REST para gerenciamento de pagamentos, com controle de status, métodos de pagamento e segurança por usuário.
 
 ---
 
-## Tecnologias Utilizadas
+## 🚀 Tecnologias
 
-- **Java**
-- **Spring Boot**
-- **Spring Security**
-- **Auth0**
-- **PostgreSQL**
+* Java 17
+* Spring Boot
+* Spring Security
+* JPA / Hibernate
+* H2 Database
+* JUnit 5 + Mockito
+* MockMvc
 
 ---
 
-## Como Executar o Projeto
+## 📌 Funcionalidades
 
-### Pré-requisitos
+* Criar pagamento
+* Listar pagamentos do usuário
+* Buscar pagamento por ID
+* Confirmar pagamento
+* Cancelar pagamento
+* Filtrar por status
+* Filtrar por método de pagamento
 
-- **Java 17+**
-- **Maven**
-- **PostgreSQL** configurado e em execução
-- Configurar as variáveis de ambiente ou o arquivo `application.properties` com as informações necessárias:
-  - Conexão com o banco de dados
-  - Chaves e configurações de segurança
+---
+
+## 🔐 Segurança
+
+* Autenticação via usuário logado
+* Isolamento de dados por usuário
+* Proteção contra acesso indevido (IDOR)
+
+---
+
+## 🧪 Testes
+
+* ✅ Testes Unitários (Model + Service)
+* ✅ Testes de Integração (Repository)
+* ✅ Testes E2E (Controller)
+
+---
+
+## 📊 Cobertura de Testes
+
+Gerada com JaCoCo.
+
+---
+
+## ▶️ Como rodar o projeto
+
+```bash
+mvn spring-boot:run
+```
+
+---
+
+## ▶️ Rodar testes
+
+```bash
+mvn test
+```
+
+---
+
+## 👨‍💻 Autor
+
+Darlison Silva
