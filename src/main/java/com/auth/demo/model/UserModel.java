@@ -51,6 +51,15 @@ public class UserModel extends PessoaModel implements UserDetails {
     @OneToMany(mappedBy = "user")
     private List<PagamentoModel> pagamentos;
 
+    @Column(name = "mp_access_token")
+    private String mpAccessToken;
+
+    @Column(name = "mp_refresh_token")
+    private String mpRefreshToken;
+
+    @Column(name = "mp_user_id")
+    private Long mpUserId;
+
     @Override
     public Collection<? extends GrantedAuthority> getAuthorities() {
         return Collections.singletonList(new SimpleGrantedAuthority("ROLE_USER"));

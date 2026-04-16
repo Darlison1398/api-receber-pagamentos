@@ -1,6 +1,7 @@
 package com.auth.demo.controller;
 
 import java.util.List;
+import java.util.Map;
 
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -11,7 +12,11 @@ import com.auth.demo.dto.PagamentoResponseDTO;
 import com.auth.demo.enums.MetodoPagamento;
 import com.auth.demo.enums.StatusPagamento;
 import com.auth.demo.model.PagamentoModel;
+import com.auth.demo.model.UserModel;
+import com.auth.demo.service.MercadoPagoService;
 import com.auth.demo.service.PagamentoService;
+import com.auth.demo.service.UserService;
+import com.mercadopago.resources.payment.Payment;
 
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -22,14 +27,40 @@ import lombok.RequiredArgsConstructor;
 public class PagamentoController {
 
     private final PagamentoService pagamentoService;
+    private final MercadoPagoService mercadoPagoService;
+    private final UserService userService;
 
     // 🔹 Criar pagamento
     @PostMapping("/criar")
     @PreAuthorize("hasRole('USER')")
     public ResponseEntity<?> criarPagamento(@Valid @RequestBody PagamentoModel pagamento) {
         try {
-            pagamentoService.criarPagamento(pagamento);
+            PagamentoModel salvo = pagamentoService.criarPagamento(pagamento);
+
+            if (pagamento.getMetodo() == MetodoPagamento.PIX) {
+                UserModel usuario = userService.getUsuarioLogado();
+
+                Payment payment = mercadoPagoService.buscarPagamento(
+                    usuario,
+                    salvo.getMpPaymentId()
+                );
+
+                String qrCode = payment.getPointOfInteraction()
+                    .getTransactionData()
+                    .getQrCode();
+
+                String qrCodeBase64 = payment.getPointOfInteraction()
+                    .getTransactionData()
+                    .getQrCodeBase64();
+
+                return ResponseEntity.ok(Map.of(
+                    "id", salvo.getId(),
+                    "qr_code", qrCode,
+                    "qr_code_base64", qrCodeBase64
+                ));
+            }
             return ResponseEntity.status(HttpStatus.CREATED).body("Pagamento registrado com sucesso!");
+
         } catch (Exception e) {
             e.printStackTrace();
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)

@@ -58,10 +58,14 @@ public class PagamentoModel {
     @Column(name = "canceled_at")
     private OffsetDateTime canceledAt;
 
+    @Column(name = "mp_payment_id", unique = true)
+    private Long mpPaymentId;
+
     //@NotNull(message = "O usuário é obrigatório")
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "usuario_id", nullable = false)
     private UserModel user;
+
 
 
     // Construtor com campos obrigatórios

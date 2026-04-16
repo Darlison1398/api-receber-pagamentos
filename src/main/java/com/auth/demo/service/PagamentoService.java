@@ -10,26 +10,27 @@ import com.auth.demo.enums.StatusPagamento;
 import com.auth.demo.model.PagamentoModel;
 import com.auth.demo.model.UserModel;
 import com.auth.demo.repository.PagamentoRepository;
+import com.mercadopago.resources.payment.Payment;
 
 @Service
 public class PagamentoService {
 
     private final PagamentoRepository pagamentoRepository;
     private final UserService userService;
+    private final MercadoPagoService mercadoPagoService;
 
-    public PagamentoService(PagamentoRepository pagamentoRepository, UserService userService) {
+    public PagamentoService(PagamentoRepository pagamentoRepository, UserService userService, MercadoPagoService mercadoPagoService) {
         this.pagamentoRepository = pagamentoRepository;
         this.userService = userService;
+        this.mercadoPagoService = mercadoPagoService;
     }
 
     public PagamentoModel criarPagamento(PagamentoModel pagamento) {
 
         UserModel usuarioLogado = userService.getUsuarioLogado();
 
-        // 🔒 Segurança: ignora qualquer user vindo do request
         pagamento.setUser(usuarioLogado);
 
-        // 🔹 Validações
         if (pagamento.getValor() == null || pagamento.getValor().doubleValue() <= 0) {
             throw new IllegalArgumentException("Valor deve ser maior que zero");
         }
@@ -38,7 +39,32 @@ public class PagamentoService {
             throw new IllegalArgumentException("Método de pagamento é obrigatório");
         }
 
-        return pagamentoRepository.save(pagamento);
+        PagamentoModel salvo = pagamentoRepository.save(pagamento);
+
+        // 🔥 PIX
+        if (pagamento.getMetodo() == MetodoPagamento.PIX) {
+
+            if (usuarioLogado.getMpAccessToken() == null) {
+                throw new IllegalStateException("Usuário não conectou conta do Mercado Pago");
+            }
+
+            try {
+                Payment mpPayment = mercadoPagoService.criarPix(
+                    usuarioLogado,
+                    pagamento.getValor(),
+                    "Pagamento ID: " + salvo.getId()
+                );
+
+                salvo.setMpPaymentId(mpPayment.getId());
+
+                pagamentoRepository.save(salvo);
+
+            } catch (Exception e) {
+                throw new RuntimeException("Erro ao gerar PIX", e);
+            }
+        }
+
+        return salvo;
     }
 
     // 🔹 Listar apenas pagamentos do usuário logado

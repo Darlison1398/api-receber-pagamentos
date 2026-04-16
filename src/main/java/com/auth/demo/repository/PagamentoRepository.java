@@ -1,5 +1,6 @@
 package com.auth.demo.repository;
 import java.util.List;
+import java.util.Optional;
 
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Repository;
@@ -13,4 +14,5 @@ public interface PagamentoRepository extends JpaRepository<PagamentoModel, Long>
     List<PagamentoModel> findByUserId(Long userId);
     List<PagamentoModel> findByUserIdAndStatus(Long userId, StatusPagamento status);
     List<PagamentoModel> findByUserIdAndMetodo(Long userId, MetodoPagamento metodo);
+    Optional<PagamentoModel> findByMpPaymentId(Long mpPaymentId);
 }

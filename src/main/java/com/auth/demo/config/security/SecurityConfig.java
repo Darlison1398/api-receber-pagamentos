@@ -45,6 +45,8 @@ public class SecurityConfig {
                         .requestMatchers(HttpMethod.PUT, "/pagamentos/{id}/cancelar").hasRole("USER")
                         .requestMatchers(HttpMethod.GET, "/pagamentos/status/{status}").hasRole("USER")
                         .requestMatchers(HttpMethod.GET, "/pagamentos/metodo/{metodo}").hasRole("USER")
+                        .requestMatchers(HttpMethod.POST,"/webhook/mercadopago").permitAll()
+                        .requestMatchers(HttpMethod.POST,"/mercadopago/conectar").hasRole("USER")
                         .anyRequest().authenticated()
            )
 
